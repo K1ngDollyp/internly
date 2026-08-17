@@ -40,18 +40,18 @@ app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(verification.router, prefix=API_PREFIX)
 app.include_router(sessions.router, prefix=API_PREFIX)
 
-# Create folders if they do not exist
-if not os.path.exists("uploads"):
-    os.makedirs("uploads")
-if not os.path.exists("app/static"):
-    os.makedirs("app/static")
-if not os.path.exists("app/static/css"):
-    os.makedirs("app/static/css")
-if not os.path.exists("app/static/js"):
-    os.makedirs("app/static/js")
+# Create folders if they do not exist (use /tmp on serverless)
+UPLOADS_DIR = "/tmp/uploads" if os.environ.get("VERCEL") else "uploads"
+try:
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    os.makedirs("app/static", exist_ok=True)
+    os.makedirs("app/static/css", exist_ok=True)
+    os.makedirs("app/static/js", exist_ok=True)
+except OSError:
+    pass  # Read-only filesystem on serverless
 
 # Mount Uploads directory to serve evidence and reports
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 # Mount Static directory for Frontend Assets
 app.mount("/assets", StaticFiles(directory="app/static"), name="assets")
