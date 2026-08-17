@@ -1,0 +1,16 @@
+from app.models.siwes import (
+    User,
+    StudentProfile,
+    Organization,
+    IndustrySupervisor,
+    Placement,
+    LogbookEntry,
+    EntryFeedback,
+    EvidenceFile,
+    Attendance,
+    Assessment,
+    AIReview,
+    FinalReport,
+    Notification,
+    AuditLog,
+)
