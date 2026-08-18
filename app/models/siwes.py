@@ -68,6 +68,7 @@ class Placement(Base):
     placement_request_id = Column(Integer, ForeignKey("placement_requests.id", ondelete="SET NULL"), nullable=True)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
+    duration_weeks = Column(Integer, default=24, nullable=False)
     status = Column(String, default="pending")  # pending, approved, rejected
 
     student = relationship("StudentProfile", back_populates="placements")
@@ -242,6 +243,7 @@ class PlacementRequest(Base):
     hr_confirmed = Column(Boolean, default=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
+    duration_weeks = Column(Integer, default=24, nullable=False)
     how_obtained = Column(String, nullable=True)
     proposed_duties = Column(Text, nullable=True)
     technical_areas = Column(JSON, nullable=True)

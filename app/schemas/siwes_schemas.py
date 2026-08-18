@@ -103,6 +103,7 @@ class PlacementResponse(BaseModel):
     supervisor_id: Optional[int]
     start_date: date
     end_date: date
+    duration_weeks: int
     status: str
     organization: Optional[OrganizationResponse] = None
 
@@ -249,6 +250,7 @@ class PlacementRequestCreate(BaseModel):
     company_representative_email: Optional[EmailStr] = None
     start_date: date
     end_date: date
+    duration_weeks: Optional[int] = 24
     how_obtained: Optional[str] = None
     proposed_duties: Optional[str] = None
     technical_areas: Optional[List[str]] = None
@@ -273,6 +275,7 @@ class PlacementRequestUpdate(BaseModel):
     company_representative_email: Optional[EmailStr] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    duration_weeks: Optional[int] = None
     how_obtained: Optional[str] = None
     proposed_duties: Optional[str] = None
     technical_areas: Optional[List[str]] = None
@@ -352,6 +355,7 @@ class PlacementRequestResponse(BaseModel):
     hr_confirmed: bool
     start_date: date
     end_date: date
+    duration_weeks: int
     how_obtained: Optional[str]
     proposed_duties: Optional[str]
     technical_areas: Optional[List[str]]

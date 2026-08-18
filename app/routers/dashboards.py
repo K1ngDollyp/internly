@@ -20,7 +20,7 @@ def get_student_dashboard(
     placement = db.query(Placement).filter(Placement.student_id == student_profile.id).order_by(Placement.id.desc()).first()
     
     # Calculate stats
-    total_weeks = 24  # Standard SIWES duration is 24 weeks
+    total_weeks = 24
     completed_weeks = 0
     pending_weeks = 0
     placement_status = "unregistered"
@@ -28,6 +28,7 @@ def get_student_dashboard(
     
     if placement:
         placement_status = placement.status
+        total_weeks = placement.duration_weeks
         placement_details = {
             "id": placement.id,
             "organization_name": placement.organization.name if placement.organization else "N/A",

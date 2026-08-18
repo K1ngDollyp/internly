@@ -99,6 +99,7 @@ def create_placement_request(
         company_representative_email=req_in.company_representative_email,
         start_date=req_in.start_date,
         end_date=req_in.end_date,
+        duration_weeks=req_in.duration_weeks,
         how_obtained=req_in.how_obtained,
         proposed_duties=req_in.proposed_duties,
         technical_areas=req_in.technical_areas,
@@ -438,6 +439,7 @@ def supervisor_confirm_fields_and_evidence(
         "supervisor_job_title": (req.proposed_supervisor_job_title, corrections.get("supervisor_job_title", req.proposed_supervisor_job_title) if not confirmations.get("supervisor_job_title", True) else req.proposed_supervisor_job_title),
         "start_date": (str(req.start_date), corrections.get("start_date", str(req.start_date)) if not confirmations.get("start_date", True) else str(req.start_date)),
         "end_date": (str(req.end_date), corrections.get("end_date", str(req.end_date)) if not confirmations.get("end_date", True) else str(req.end_date)),
+        "duration_weeks": (str(req.duration_weeks), corrections.get("duration_weeks", str(req.duration_weeks)) if not confirmations.get("duration_weeks", True) else str(req.duration_weeks)),
     }
 
     for f_name, (st_val, sv_val) in fields_to_check.items():
@@ -556,13 +558,36 @@ def review_placement_request(
                 supervisor_id = sv_profile.id
 
         # Create formal Placement
+        final_start_date = req.start_date
+        final_end_date = req.end_date
+        final_duration_weeks = req.duration_weeks
+
+        comparisons = db.query(FieldComparison).filter(FieldComparison.placement_request_id == req.id).all()
+        for comp in comparisons:
+            if comp.field_name == "start_date" and comp.supervisor_value:
+                try:
+                    final_start_date = datetime.datetime.strptime(comp.supervisor_value, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            elif comp.field_name == "end_date" and comp.supervisor_value:
+                try:
+                    final_end_date = datetime.datetime.strptime(comp.supervisor_value, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            elif comp.field_name == "duration_weeks" and comp.supervisor_value:
+                try:
+                    final_duration_weeks = int(comp.supervisor_value)
+                except ValueError:
+                    pass
+
         placement = Placement(
             student_id=req.student_id,
             organization_id=org.id,
             supervisor_id=supervisor_id,
             placement_request_id=req.id,
-            start_date=req.start_date,
-            end_date=req.end_date,
+            start_date=final_start_date,
+            end_date=final_end_date,
+            duration_weeks=final_duration_weeks,
             status="approved"
         )
         db.add(placement)

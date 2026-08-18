@@ -303,7 +303,7 @@ async function loadStudentPlacement() {
         regBox.classList.remove("hidden");
         
         document.getElementById("view-place-org").innerText = placement.organization ? placement.organization.name : "N/A";
-        document.getElementById("view-place-dates").innerText = `${placement.start_date} to ${placement.end_date}`;
+        document.getElementById("view-place-dates").innerText = `${placement.start_date} to ${placement.end_date} (${placement.duration_weeks} Weeks)`;
         document.getElementById("view-place-supervisor").innerText = placement.supervisor && placement.supervisor.user ? placement.supervisor.user.full_name : "Unassigned";
         
         const statusEl = document.getElementById("view-place-status");
@@ -355,6 +355,7 @@ async function loadStudentPlacement() {
             document.getElementById("place-sup-phone").value = req.proposed_supervisor_phone;
             document.getElementById("place-start").value = req.start_date;
             document.getElementById("place-end").value = req.end_date;
+            document.getElementById("place-duration-weeks").value = req.duration_weeks;
             document.getElementById("place-obtained").value = req.how_obtained || "Personal Contact / Search";
             document.getElementById("place-expected-work").value = req.expected_work || "";
 
@@ -413,7 +414,7 @@ function setPlacementFormReadonly(isReadonly) {
         "place-org", "place-addr", "place-industry", "place-email", "place-phone",
         "place-sup-name", "place-sup-title", "place-sup-email", "place-sup-phone",
         "place-sup-experience", "place-sup-dept", "place-sup-relationship", "place-sup-conflict",
-        "place-rep-name", "place-rep-email", "place-start", "place-end", "place-obtained", "place-expected-work"
+        "place-rep-name", "place-rep-email", "place-start", "place-end", "place-duration-weeks", "place-obtained", "place-expected-work"
     ];
     fields.forEach(f => {
         const el = document.getElementById(f);
@@ -449,6 +450,7 @@ async function handlePlacementSubmit(e) {
         company_representative_email: document.getElementById("place-rep-email").value || null,
         start_date: document.getElementById("place-start").value,
         end_date: document.getElementById("place-end").value,
+        duration_weeks: parseInt(document.getElementById("place-duration-weeks").value) || 24,
         how_obtained: document.getElementById("place-obtained").value,
         proposed_duties: document.getElementById("place-expected-work").value,
         technical_areas: techAreas,
@@ -486,56 +488,173 @@ function copyInviteLink() {
     showToast("Invitation link copied to clipboard!", "success");
 }
 
-// Student Dashboard: Load Logbook Logs list
-async function loadStudentLogbook() {
-    if (!placementStartDate) {
-        try {
-            const stats = await apiRequest("/api/v1/dashboard/student");
-            if (stats.placement_details) {
-                placementStartDate = stats.placement_details.start_date;
-            }
-        } catch (err) {}
-    }
+let currentSelectedWeek = 1;
+let loadedEntries = {};
 
-    const entriesList = document.getElementById("own-entries-list");
-    entriesList.innerHTML = `<p class="empty-text">Loading logbook entries...</p>`;
+// Helper to calculate start & end dates for a given week based on placementStartDate
+function calculateDatesForWeek(weekNum) {
+    if (!placementStartDate) return { start: "", end: "" };
+    const start = new Date(placementStartDate);
+    start.setDate(start.getDate() + (weekNum - 1) * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 5);
+    return {
+        start: start.toISOString().split("T")[0],
+        end: end.toISOString().split("T")[0]
+    };
+}
+
+// Select a specific week page
+function selectLogbookWeek(weekNum) {
+    currentSelectedWeek = weekNum;
+    
+    // Highlight active button in pagination grid
+    document.querySelectorAll(".week-btn").forEach(btn => {
+        btn.classList.remove("active");
+        if (parseInt(btn.dataset.week) === weekNum) {
+            btn.classList.add("active");
+        }
+    });
+
+    const entry = loadedEntries[weekNum];
+    if (entry) {
+        loadEntryToForm(entry);
+    } else {
+        // Prepare new draft for this week
+        document.getElementById("logbook-entry-id").value = "";
+        document.getElementById("log-week").value = weekNum;
+        
+        const dates = calculateDatesForWeek(weekNum);
+        document.getElementById("log-start").value = dates.start;
+        document.getElementById("log-end").value = dates.end;
+        
+        // Reset inputs
+        document.getElementById("log-activities").value = "";
+        document.getElementById("log-monday").value = "";
+        document.getElementById("log-tuesday").value = "";
+        document.getElementById("log-wednesday").value = "";
+        document.getElementById("log-thursday").value = "";
+        document.getElementById("log-friday").value = "";
+        document.getElementById("log-saturday").value = "";
+        document.getElementById("log-tools").value = "";
+        document.getElementById("log-challenges").value = "";
+        document.getElementById("log-outcome").value = "";
+        
+        // Enable form for editing new draft
+        setLogbookFormReadonly(false, "draft");
+        
+        // Hide AI review section for empty new drafts
+        document.getElementById("ai-feedback-card").classList.add("hidden");
+    }
+}
+
+// Student Dashboard: Load Logbook pages list
+async function loadStudentLogbook() {
+    let totalWeeks = 24;
+    
+    try {
+        const stats = await apiRequest("/api/v1/dashboard/student");
+        if (stats.placement_details) {
+            placementStartDate = stats.placement_details.start_date;
+        }
+        if (stats.total_weeks) {
+            totalWeeks = stats.total_weeks;
+        }
+    } catch (err) {}
+
+    const paginationContainer = document.getElementById("logbook-weeks-pagination");
+    if (paginationContainer) {
+        paginationContainer.innerHTML = `<p class="empty-text" style="grid-column: span 4;">Loading weeks...</p>`;
+    }
     
     try {
         const entries = await apiRequest("/api/v1/logbook-entries/me");
+        loadedEntries = {};
+        entries.forEach(entry => {
+            loadedEntries[entry.week_number] = entry;
+        });
         
-        if (entries.length === 0) {
-            entriesList.innerHTML = `<p class="empty-text">No entries created yet. Fill out the workspace details on the left.</p>`;
-            return;
+        if (paginationContainer) {
+            paginationContainer.innerHTML = "";
+            
+            for (let w = 1; w <= totalWeeks; w++) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn week-btn";
+                btn.dataset.week = w;
+                btn.style.padding = "10px 5px";
+                btn.style.fontSize = "0.85rem";
+                btn.style.display = "flex";
+                btn.style.flexDirection = "column";
+                btn.style.alignItems = "center";
+                btn.style.gap = "4px";
+                
+                const entry = loadedEntries[w];
+                let statusBadge = "not started";
+                let btnClass = "btn-secondary";
+                
+                if (entry) {
+                    statusBadge = entry.status;
+                    if (entry.status === "approved") {
+                        btnClass = "btn-emerald";
+                    } else if (entry.status === "submitted") {
+                        btnClass = "btn-teal";
+                    } else if (entry.status === "revision_requested" || entry.status === "rejected") {
+                        btnClass = "btn-rose";
+                    } else {
+                        btnClass = "btn-yellow";
+                    }
+                }
+                
+                btn.classList.add(btnClass);
+                btn.innerHTML = `
+                    <strong>W${w}</strong>
+                    <span style="font-size: 0.65rem; opacity: 0.85; text-transform: uppercase;">${statusBadge}</span>
+                `;
+                
+                btn.onclick = () => selectLogbookWeek(w);
+                paginationContainer.appendChild(btn);
+            }
         }
         
-        entriesList.innerHTML = "";
-        entries.forEach(entry => {
-            const entryEl = document.createElement("div");
-            entryEl.className = "boxed-content";
-            entryEl.style.marginBottom = "15px";
-            
-            const comments = entry.feedback && entry.feedback.length > 0 
-                ? `<div class="text-secondary" style="margin-top: 5px; font-size: 0.85rem;"><i class="fa-regular fa-comments"></i> Supervisor feedback: "${entry.feedback[entry.feedback.length-1].comment}"</div>`
-                : "";
-
-            entryEl.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <strong>Week ${entry.week_number} Log</strong>
-                    <span class="badge ${entry.status === 'approved' ? 'accent-emerald' : 'accent-yellow'}">${entry.status}</span>
-                </div>
-                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 5px;">
-                    ${entry.activities.substring(0, 120)}...
-                </div>
-                ${comments}
-                <div class="button-group" style="margin-top: 10px; justify-content: flex-end;">
-                    <button class="btn btn-secondary btn-small" onclick="loadEntryToForm(${JSON.stringify(entry).replace(/"/g, '&quot;')})">Edit / View</button>
-                    ${entry.status === 'draft' || entry.status === 'rejected' || entry.status === 'revision_requested' ? `<button class="btn btn-teal btn-small" onclick="submitEntryToSupervisor(${entry.id})">Submit</button>` : ''}
-                </div>
-            `;
-            entriesList.appendChild(entryEl);
-        });
+        // Select active week page
+        selectLogbookWeek(currentSelectedWeek);
+        
     } catch (err) {
-        entriesList.innerHTML = `<p class="empty-text">Failed to load logbook entries.</p>`;
+        if (paginationContainer) {
+            paginationContainer.innerHTML = `<p class="empty-text" style="grid-column: span 4;">Failed to load weeks.</p>`;
+        }
+    }
+}
+
+function setLogbookFormReadonly(isReadonly, status) {
+    const fields = [
+        "log-start", "log-monday", "log-tuesday", "log-wednesday", "log-thursday",
+        "log-friday", "log-saturday", "log-activities", "log-tools", "log-challenges", "log-outcome"
+    ];
+    fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el) el.disabled = isReadonly;
+    });
+
+    const saveBtn = document.getElementById("btn-save-logbook");
+    const submitBtn = document.getElementById("btn-submit-logbook");
+    const evidenceForm = document.getElementById("evidence-section");
+
+    if (isReadonly) {
+        if (saveBtn) saveBtn.classList.add("hidden");
+        if (submitBtn) submitBtn.classList.add("hidden");
+        if (evidenceForm) evidenceForm.classList.add("hidden");
+    } else {
+        if (saveBtn) saveBtn.classList.remove("hidden");
+        const entryId = document.getElementById("logbook-entry-id").value;
+        if (entryId && (status === "draft" || status === "rejected" || status === "revision_requested")) {
+            if (submitBtn) submitBtn.classList.remove("hidden");
+            if (evidenceForm) evidenceForm.classList.remove("hidden");
+        } else {
+            if (submitBtn) submitBtn.classList.add("hidden");
+            if (evidenceForm) evidenceForm.classList.add("hidden");
+        }
     }
 }
 
@@ -556,8 +675,9 @@ function loadEntryToForm(entry) {
     document.getElementById("log-challenges").value = entry.challenges || "";
     document.getElementById("log-outcome").value = entry.learning_outcome || "";
     
-    // Toggle evidence form display
-    document.getElementById("evidence-section").classList.remove("hidden");
+    // Toggle evidence form display and form readonly
+    const isLocked = entry.status === "approved" || entry.status === "submitted";
+    setLogbookFormReadonly(isLocked, entry.status);
     
     // If AI evaluation already exists, display it
     if (entry.ai_reviews && entry.ai_reviews.length > 0) {
@@ -613,6 +733,16 @@ async function submitEntryToSupervisor(id) {
         loadStudentLogbook();
     } catch (err) {}
 }
+
+async function submitCurrentEntryToSupervisor() {
+    const entryId = document.getElementById("logbook-entry-id").value;
+    if (!entryId) {
+        showToast("Please save the logbook entry first.", "warning");
+        return;
+    }
+    await submitEntryToSupervisor(entryId);
+}
+
 
 // Upload evidence file
 async function handleEvidenceUpload(e) {
@@ -1143,6 +1273,8 @@ async function openSupervisorVerificationWorkspace(reqId, studentName) {
         document.getElementById("verify-st-supervisor-title").innerText = req.proposed_supervisor_job_title;
         document.getElementById("verify-st-start-date").innerText = req.start_date;
         document.getElementById("verify-st-end-date").innerText = req.end_date;
+        document.getElementById("verify-st-duration-weeks").innerText = `${req.duration_weeks} Weeks`;
+        document.getElementById("corr-duration-weeks").value = req.duration_weeks;
     } catch (err) {}
 }
 
@@ -1160,17 +1292,17 @@ async function submitSupervisorVerification(e) {
     e.preventDefault();
     const reqId = document.getElementById("verify-placement-request-id").value;
     
-    const fields = ["company-name", "company-address", "supervisor-name", "supervisor-title", "start-date", "end-date"];
+    const fields = ["company-name", "company-address", "supervisor-name", "supervisor-title", "start-date", "end-date", "duration-weeks"];
     const confirmations = {};
     const corrections = {};
     
     fields.forEach(f => {
         const isChecked = document.getElementById(`chk-confirm-${f}`).checked;
-        confirmations[f.replace('-', '_')] = isChecked;
+        confirmations[f.replace(/-/g, '_')] = isChecked;
         if (!isChecked) {
-            corrections[f.replace('-', '_')] = document.getElementById(`corr-${f}`).value;
+            corrections[f.replace(/-/g, '_')] = document.getElementById(`corr-${f}`).value;
         } else {
-            corrections[f.replace('-', '_')] = "";
+            corrections[f.replace(/-/g, '_')] = "";
         }
     });
 

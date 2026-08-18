@@ -528,3 +528,26 @@ input:focus, select:focus, textarea:focus {
 .toast.success { border-left-color: var(--accent-emerald); }
 .toast.error { border-left-color: var(--accent-rose); }
 .toast.warning { border-left-color: var(--accent-yellow); }
+
+/* Week Selector Buttons */
+.week-btn {
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+}
+.week-btn.active {
+    box-shadow: 0 0 12px var(--accent-indigo-glow);
+    border: 2px solid var(--text-primary) !important;
+}
+.btn-emerald {
+    background: var(--accent-emerald);
+    color: white;
+}
+.btn-yellow {
+    background: var(--accent-yellow);
+    color: #0b0f19;
+}
+.btn-rose {
+    background: var(--accent-rose);
+    color: white;
+}
+
