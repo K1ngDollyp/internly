@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, RoleChecker
 from app.models.siwes import User, StudentProfile, IndustrySupervisor
 from app.schemas.siwes_schemas import UserRegister, UserLogin, Token, UserResponse, UserProfileUpdate
 from typing import Optional
@@ -21,13 +21,11 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         )
     
     role = user_in.role.lower()
-    if role not in ["student", "supervisor", "coordinator", "admin"]:
+    if role not in ["student", "supervisor"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid role selected"
+            detail="Public registration is only permitted for student and supervisor roles."
         )
-
-
 
     hashed_pw = get_password_hash(user_in.password)
     new_user = User(
@@ -60,6 +58,39 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         db.add(supervisor)
         db.commit()
 
+    db.refresh(new_user)
+    return new_user
+
+@router.post("/register-coordinator", response_model=UserResponse)
+def register_coordinator(
+    user_in: UserRegister,
+    current_user: User = Depends(RoleChecker(["admin"])),
+    db: Session = Depends(get_db)
+):
+    existing_user = db.query(User).filter(User.email == user_in.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    role = user_in.role.lower()
+    if role not in ["coordinator", "admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Role must be coordinator or admin"
+        )
+
+    hashed_pw = get_password_hash(user_in.password)
+    new_user = User(
+        full_name=user_in.full_name,
+        email=user_in.email,
+        password_hash=hashed_pw,
+        role=role,
+        status="active"
+    )
+    db.add(new_user)
+    db.commit()
     db.refresh(new_user)
     return new_user
 

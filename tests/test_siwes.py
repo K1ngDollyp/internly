@@ -64,6 +64,18 @@ def test_auth_registration_and_login():
     assert "access_token" in login_response.json()
     assert login_response.json()["role"] == "student"
 
+def test_register_rejects_coordinator_or_admin_role():
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "full_name": "Rogue User",
+            "email": "rogue@test.com",
+            "password": "password123",
+            "role": "coordinator"
+        }
+    )
+    assert response.status_code == 400
+
 def test_csv_export_unauthenticated_rejected():
     response = client.get("/api/v1/reports/export/csv")
     assert response.status_code == 401
@@ -126,11 +138,15 @@ def test_verification_workflow():
     # Setup Student profile
     client.patch("/api/v1/students/me", json={"matric_number": "123", "department": "CS", "level": "400"}, headers=headers)
 
-    # 1.1 Register and Login Coordinator to verify Student Identity
-    client.post(
-        "/api/v1/auth/register",
-        json={"full_name": "Coordinator", "email": "coord@test.com", "password": "pass", "role": "coordinator"}
-    )
+    # 1.1 Create Coordinator in DB directly (since public registration prohibits coordinator self-registration)
+    from app.models.siwes import User
+    from app.core.security import get_password_hash
+    db = TestingSessionLocal()
+    c_user = User(full_name="Coordinator", email="coord@test.com", password_hash=get_password_hash("pass"), role="coordinator", status="active")
+    db.add(c_user)
+    db.commit()
+    db.close()
+
     coord_login = client.post("/api/v1/auth/login", data={"username": "coord@test.com", "password": "pass"})
     coord_token = coord_login.json()["access_token"]
     coord_headers = {"Authorization": f"Bearer {coord_token}"}
