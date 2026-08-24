@@ -384,7 +384,7 @@ def supervisor_confirm_fields_and_evidence(
     notes: Optional[str] = Form(None),
     field_confirmations: str = Form(...),  # JSON dict of true/false confirmations
     field_corrections: str = Form(...),      # JSON dict of text corrections
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
     current_user: User = Depends(RoleChecker(["supervisor"])),
     db: Session = Depends(get_db)
 ):
@@ -399,20 +399,22 @@ def supervisor_confirm_fields_and_evidence(
     if not req:
         raise HTTPException(status_code=404, detail="Placement request not found")
 
-    # File size validation
-    max_size = 5 * 1024 * 1024
-    content = file.file.read()
-    if len(content) > max_size:
-        raise HTTPException(status_code=400, detail="File too large. Max is 5MB")
-    file.file.seek(0)
+    # Save evidence file if provided
+    file_url_val = "/uploads/default_acceptance.pdf"
+    if file and file.filename:
+        max_size = 5 * 1024 * 1024
+        content = file.file.read()
+        if len(content) > max_size:
+            raise HTTPException(status_code=400, detail="File too large. Max is 5MB")
+        file.file.seek(0)
 
-    # Save evidence file
-    file_ext = os.path.splitext(file.filename)[1]
-    safe_filename = f"evidence_verify_{req_id}_{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}{file_ext}"
-    dest_path = os.path.join(UPLOAD_DIR, safe_filename)
-    
-    with open(dest_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        file_ext = os.path.splitext(file.filename)[1]
+        safe_filename = f"evidence_verify_{req_id}_{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}{file_ext}"
+        dest_path = os.path.join(UPLOAD_DIR, safe_filename)
+        
+        with open(dest_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        file_url_val = f"/uploads/{safe_filename}"
 
     # Save evidence record
     evidence = VerificationEvidence(
@@ -420,7 +422,7 @@ def supervisor_confirm_fields_and_evidence(
         submitted_by=current_user.id,
         evidence_type=evidence_type,
         title=title,
-        file_url=f"/uploads/{safe_filename}",
+        file_url=file_url_val,
         issuer_name=issuer_name,
         issuer_contact=issuer_contact,
         notes=notes,
