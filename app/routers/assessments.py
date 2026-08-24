@@ -22,6 +22,13 @@ def create_assessment(
     if not supervisor or placement.supervisor_id != supervisor.id:
         raise HTTPException(status_code=403, detail="Forbidden: You are not assigned to this student")
         
+    total = (
+        assessment_in.punctuality_score +
+        assessment_in.technical_score +
+        assessment_in.communication_score +
+        assessment_in.professionalism_score
+    )
+
     # Check if assessment already exists — update scores
     existing = db.query(Assessment).filter(Assessment.placement_id == placement_id).first()
     if existing:
