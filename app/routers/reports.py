@@ -146,7 +146,7 @@ def get_report_status(
 @router.get("/pdf/{placement_id}")
 def generate_printable_official_summary(
     placement_id: int,
-    current_user: User = Depends(RoleChecker(["coordinator", "admin", "supervisor", "student"])),
+    token: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
