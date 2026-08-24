@@ -885,38 +885,55 @@
                                         </form>
                                         
                                         <!-- Placement final grading -->
-                                        <hr class="divider">
-                                        <h5>Final SIWES Grading Assessment</h5>
-                                        <form id="assessment-form" onsubmit="submitFinalAssessment(event)">
-                                            <div class="grid grid-2">
-                                                <div class="form-group">
-                                                    <label for="grade-punctuality">Punctuality Score (0 - 20)</label>
-                                                    <input type="number" id="grade-punctuality" min="0" max="20" required value="0">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="grade-technical">Technical Performance (0 - 40)</label>
-                                                    <input type="number" id="grade-technical" min="0" max="40" required value="0">
-                                                </div>
-                                            </div>
-                                            <div class="grid grid-2">
-                                                <div class="form-group">
-                                                    <label for="grade-communication">Communication (0 - 20)</label>
-                                                    <input type="number" id="grade-communication" min="0" max="20" required value="0">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="grade-professional">Professionalism (0 - 20)</label>
-                                                    <input type="number" id="grade-professional" min="0" max="20" required value="0">
+                                        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);">
+                                        
+                                        <!-- Final Grading Locked State Notice -->
+                                        <div id="sup-final-grading-locked-notice" class="boxed-content" style="background: var(--accent-amber-light); border: 1px solid #FDE68A; padding: 16px; border-radius: var(--radius-sm);">
+                                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                                <i class="fa-solid fa-lock" style="font-size: 1.2rem; color: var(--accent-amber); margin-top: 2px;"></i>
+                                                <div>
+                                                    <h5 style="margin: 0 0 4px 0; color: #92400E; font-size: 0.95rem;">Final SIWES Assessment Locked</h5>
+                                                    <p style="margin: 0; font-size: 0.85rem; color: #B45309; line-height: 1.4;">
+                                                        The Final Grading Assessment form will automatically unlock once you have reviewed and <strong>approved the student's logbook entry for the final week</strong> of the internship.
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <div class="form-group">
-                                                <label for="grade-remarks">Assessor Remarks</label>
-                                                <textarea id="grade-remarks" rows="2" placeholder="Overall remarks..."></textarea>
-                                            </div>
-                                            <div class="button-group">
-                                                <button type="submit" class="btn btn-primary">Save Grade Draft</button>
-                                                <button type="button" class="btn btn-emerald" onclick="finalizeAssessment()">Finalize and Lock Grades</button>
-                                            </div>
-                                        </form>
+                                        </div>
+
+                                        <!-- Unlocked Assessment Form -->
+                                        <div id="sup-final-grading-unlocked-panel" class="hidden">
+                                            <h5 style="margin-bottom: 12px; color: var(--text-primary); font-size: 1rem;"><i class="fa-solid fa-award text-emerald"></i> Final SIWES Grading Assessment</h5>
+                                            <form id="assessment-form" onsubmit="submitFinalAssessment(event)">
+                                                <div class="grid grid-2" style="gap: 12px;">
+                                                    <div class="form-group">
+                                                        <label for="grade-punctuality">Punctuality Score (0 - 20)</label>
+                                                        <input type="number" id="grade-punctuality" min="0" max="20" required value="0">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="grade-technical">Technical Performance (0 - 40)</label>
+                                                        <input type="number" id="grade-technical" min="0" max="40" required value="0">
+                                                    </div>
+                                                </div>
+                                                <div class="grid grid-2" style="gap: 12px;">
+                                                    <div class="form-group">
+                                                        <label for="grade-communication">Communication (0 - 20)</label>
+                                                        <input type="number" id="grade-communication" min="0" max="20" required value="0">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="grade-professional">Professionalism (0 - 20)</label>
+                                                        <input type="number" id="grade-professional" min="0" max="20" required value="0">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="grade-remarks">Assessor Remarks</label>
+                                                    <textarea id="grade-remarks" rows="2" placeholder="Provide overall remarks on student performance..."></textarea>
+                                                </div>
+                                                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Grade Draft</button>
+                                                    <button type="button" class="btn btn-emerald" onclick="finalizeAssessment()" style="flex: 1;">Finalize & Lock Grades</button>
+                                                </div>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

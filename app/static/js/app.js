@@ -912,7 +912,20 @@ async function openSupervisorWorkspace(placementId, studentName) {
         reportStatus.innerText = "Pending submission at end of internship.";
     }
 
-    // 3. Fetch existing assessment for this placement if available
+    // 3. Unlock Final Grading Assessment form ONLY IF a logbook entry (e.g. final week) is approved!
+    const hasApprovedWeek = studentEntries.some(e => e.status === "approved");
+    const lockedNotice = document.getElementById("sup-final-grading-locked-notice");
+    const unlockedPanel = document.getElementById("sup-final-grading-unlocked-panel");
+
+    if (hasApprovedWeek) {
+        lockedNotice.classList.add("hidden");
+        unlockedPanel.classList.remove("hidden");
+    } else {
+        lockedNotice.classList.remove("hidden");
+        unlockedPanel.classList.add("hidden");
+    }
+
+    // 4. Fetch existing assessment for this placement if available
     try {
         const assess = await apiRequest(`/api/v1/assessments/placement/${placementId}`);
         if (assess) {
