@@ -22,11 +22,9 @@ def create_assessment(
     if not supervisor or placement.supervisor_id != supervisor.id:
         raise HTTPException(status_code=403, detail="Forbidden: You are not assigned to this student")
         
-    # Check if assessment already exists — upsert if draft
+    # Check if assessment already exists — update scores
     existing = db.query(Assessment).filter(Assessment.placement_id == placement_id).first()
     if existing:
-        if existing.status == "finalized":
-            raise HTTPException(status_code=400, detail="Finalized assessments cannot be updated.")
         existing.punctuality_score = assessment_in.punctuality_score
         existing.technical_score = assessment_in.technical_score
         existing.communication_score = assessment_in.communication_score
