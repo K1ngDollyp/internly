@@ -1062,9 +1062,14 @@ async function openVerificationReviewPanel(reqId) {
                     <p><strong>Title:</strong> ${e.title}</p>
                     <p><strong>Issuer:</strong> ${e.issuer_name || 'N/A'} (${e.issuer_contact || 'N/A'})</p>
                     <p><strong>Notes:</strong> <small class="text-secondary">${e.notes || 'No supervisor notes'}</small></p>
-                    <a href="${e.file_url}" target="_blank" class="btn btn-secondary btn-small" style="display: inline-block; margin-top: 5px;">
-                        <i class="fa-solid fa-download"></i> Download Document
-                    </a>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button onclick="openPdfModal('${e.file_url}')" class="btn btn-teal btn-small">
+                            <i class="fa-solid fa-eye"></i> Preview PDF In-App
+                        </button>
+                        <a href="${e.file_url}" target="_blank" class="btn btn-secondary btn-small">
+                            <i class="fa-solid fa-download"></i> Download Document
+                        </a>
+                    </div>
                 `;
                 evidenceBox.appendChild(item);
             });
@@ -1515,6 +1520,54 @@ async function handleAppealSubmit(e) {
 document.addEventListener("click", () => {
     document.getElementById("notification-dropdown").classList.add("hidden");
 });
+
+// PDF In-App Preview Modal Handler
+function openPdfModal(url) {
+    let modal = document.getElementById("pdf-preview-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "pdf-preview-modal";
+        modal.style.position = "fixed";
+        modal.style.top = "0";
+        modal.style.left = "0";
+        modal.style.width = "100vw";
+        modal.style.height = "100vh";
+        modal.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
+        modal.style.zIndex = "99999";
+        modal.style.display = "flex";
+        modal.style.flexDirection = "column";
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
+        modal.style.padding = "20px";
+
+        modal.innerHTML = `
+            <div style="width: 90%; max-width: 900px; height: 85vh; background: #0f172a; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #1e293b; color: #fff;">
+                    <strong style="font-size: 1rem;"><i class="fa-solid fa-file-pdf text-rose"></i> In-App Document Evidence Viewer</strong>
+                    <button onclick="closePdfModal()" class="btn btn-secondary btn-small"><i class="fa-solid fa-xmark"></i> Close</button>
+                </div>
+                <iframe id="pdf-modal-iframe" style="width: 100%; height: 100%; border: none;" src=""></iframe>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    document.getElementById("pdf-modal-iframe").src = url;
+    modal.style.display = "flex";
+}
+
+function closePdfModal() {
+    const modal = document.getElementById("pdf-preview-modal");
+    if (modal) {
+        modal.style.display = "none";
+        document.getElementById("pdf-modal-iframe").src = "";
+    }
+}
+
+// Export Departmental Grades CSV
+function exportGradesCSV() {
+    showToast("Preparing Departmental Grades Matrix CSV...", "info");
+    window.open("/api/v1/reports/export/csv", "_blank");
+}
 
 // Initial Bootup
 window.addEventListener("hashchange", handleUrlRouting);

@@ -238,6 +238,17 @@ def submit_placement_request(
         "success"
     )
 
+    # Dispatch email invitation to proposed supervisor
+    from app.services.email_service import EmailService
+    invite_full_url = f"https://internly2026.vercel.app/#invite/{token}"
+    EmailService.send_supervisor_invitation(
+        supervisor_email=req.proposed_supervisor_email,
+        supervisor_name=req.proposed_supervisor_name,
+        student_name=current_user.full_name,
+        company_name=req.proposed_company_name,
+        invite_link=invite_full_url
+    )
+
     return {
         "message": "Placement request submitted successfully",
         "invitation_token": token,

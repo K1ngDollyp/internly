@@ -241,6 +241,70 @@ def generate_printable_official_summary(
     """
     return HTMLResponse(content=html_content)
 
+@router.get("/export/csv")
+def export_departmental_grades_csv(
+    token: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Exports a CSV spreadsheet containing all student SIWES placement records,
+    matriculation numbers, departments, host companies, attendance rates, and final scores.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    from app.models.siwes import Attendance
+
+    placements = db.query(Placement).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write CSV Header Row
+    writer.writerow([
+        "Placement ID", "Student Name", "Matric Number", "Department", "Level",
+        "Host Organization", "Start Date", "End Date", "Duration (Weeks)",
+        "Attendance Rate (%)", "Punctuality (20)", "Technical Skill (40)",
+        "Communication (20)", "Professionalism (20)", "Total Score (100)", "Status"
+    ])
+
+    for p in placements:
+        student_user = p.student.user
+        org_name = p.organization.name if p.organization else "Unspecified"
+        assessment = db.query(Assessment).filter(Assessment.placement_id == p.id).first()
+        
+        # Calculate attendance percentage
+        attendances = db.query(Attendance).filter(Attendance.placement_id == p.id).all()
+        total_days = len(attendances)
+        present_days = sum(1 for a in attendances if a.status == "present")
+        att_rate = round((present_days / total_days * 100), 1) if total_days > 0 else 100.0
+
+        writer.writerow([
+            p.id,
+            student_user.full_name,
+            p.student.matric_number,
+            p.student.department,
+            p.student.level,
+            org_name,
+            p.start_date.isoformat() if p.start_date else "",
+            p.end_date.isoformat() if p.end_date else "",
+            p.duration_weeks,
+            f"{att_rate}%",
+            assessment.punctuality_score if assessment else 0,
+            assessment.technical_score if assessment else 0,
+            assessment.communication_score if assessment else 0,
+            assessment.professionalism_score if assessment else 0,
+            assessment.total_score if assessment else 0,
+            p.status.upper()
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=SIWES_Departmental_Grades_Matrix.csv"}
+    )
+
 @router.get("/{report_id}", response_model=dict)
 def get_report_status(
     report_id: int,

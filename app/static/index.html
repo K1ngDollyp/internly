@@ -1086,6 +1086,15 @@
 
                     <!-- COORDINATOR VIEW: OVERVIEW / CONTROL -->
                     <div id="view-coordinator-overview" class="dashboard-view hidden">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 15px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.1rem; color: #fff;">Departmental Assessment Control</h3>
+                                <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: var(--text-secondary);">Manage student verifications, placement queues, and official grade exports.</p>
+                            </div>
+                            <button onclick="exportGradesCSV()" class="btn btn-teal">
+                                <i class="fa-solid fa-file-csv"></i> Export Departmental Grades CSV
+                            </button>
+                        </div>
                         <div class="grid grid-4">
                             <div class="card metric-card">
                                 <div class="metric-icon accent-indigo"><i class="fa-solid fa-user-graduate"></i></div>
