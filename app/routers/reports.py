@@ -119,30 +119,6 @@ def generate_progress_report(
         } if assessment else None
     }
 
-@router.get("/{report_id}", response_model=dict)
-def get_report_status(
-    report_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    report = db.query(FinalReport).filter(FinalReport.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-        
-    # Check permissions
-    if current_user.role == "student":
-        student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
-        if not student_profile or report.placement.student_id != student_profile.id:
-            raise HTTPException(status_code=403, detail="Forbidden: Access Denied")
-            
-    return {
-        "id": report.id,
-        "file_url": report.file_url,
-        "submitted_at": report.submitted_at.isoformat(),
-        "status": report.status,
-        "reviewer_comment": report.reviewer_comment
-    }
-
 @router.get("/pdf/{placement_id}")
 def generate_printable_official_summary(
     placement_id: int,
@@ -264,4 +240,28 @@ def generate_printable_official_summary(
     </html>
     """
     return HTMLResponse(content=html_content)
+
+@router.get("/{report_id}", response_model=dict)
+def get_report_status(
+    report_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    report = db.query(FinalReport).filter(FinalReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+        
+    # Check permissions
+    if current_user.role == "student":
+        student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+        if not student_profile or report.placement.student_id != student_profile.id:
+            raise HTTPException(status_code=403, detail="Forbidden: Access Denied")
+            
+    return {
+        "id": report.id,
+        "file_url": report.file_url,
+        "submitted_at": report.submitted_at.isoformat(),
+        "status": report.status,
+        "reviewer_comment": report.reviewer_comment
+    }
 
