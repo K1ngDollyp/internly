@@ -294,9 +294,10 @@ async function loadStudentOverview() {
         
         const nextStepMsg = document.getElementById("student-next-step-msg");
         if (nextStepMsg) {
-            if (stats.placement_status === "approved") {
+            const statusLower = (stats.placement_status || "").toLowerCase();
+            if (statusLower === "approved") {
                 nextStepMsg.innerHTML = `Your SIWES placement is <strong>APPROVED</strong>! Go to the <strong>Logbook tab</strong> to fill and submit your Weekly Logbook Entry (Completed: <strong>${stats.completed_weeks} of ${stats.total_weeks} Weeks</strong>).`;
-            } else if (stats.placement_status === "pending") {
+            } else if (statusLower.includes("pending") || statusLower.includes("verification") || statusLower.includes("submitted")) {
                 nextStepMsg.innerHTML = `Your placement proposal is <strong>UNDER VERIFICATION</strong>. Copy your supervisor invitation link from the <strong>Placement tab</strong> and send it to your supervisor to confirm.`;
             } else {
                 nextStepMsg.innerHTML = `Please go to the <strong>Placement tab</strong> to fill and submit your SIWES Placement Proposal for coordinator verification.`;
