@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.dependencies import get_current_user, RoleChecker
 from app.models.siwes import User, StudentProfile, Placement, FinalReport, LogbookEntry, Assessment, AuditLog
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
