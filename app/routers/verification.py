@@ -193,7 +193,7 @@ def submit_placement_request(
 
     old_status = req.status
     req.status = "awaiting_supervisor"
-    req.submitted_at = datetime.datetime.utcnow()
+    req.submitted_at = datetime.datetime.now(datetime.timezone.utc)
 
     # Create invitation token
     token = secrets.token_hex(16)
@@ -202,7 +202,7 @@ def submit_placement_request(
         placement_request_id=req.id,
         email=req.proposed_supervisor_email,
         token_hash=hashed,
-        expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=7),
+        expires_at=datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7),
         status="active"
     )
     db.add(invitation)
@@ -342,7 +342,7 @@ def accept_invitation_and_register(
         req.status = "supervisor_confirmed"
         reason_str = "Supervisor accepted invitation and confirmed affiliation"
     
-    invite.accepted_at = datetime.datetime.utcnow()
+    invite.accepted_at = datetime.datetime.now(datetime.timezone.utc)
     invite.status = "accepted"
 
     history = StatusHistory(
@@ -408,7 +408,7 @@ def supervisor_confirm_fields_and_evidence(
 
     # Save evidence file
     file_ext = os.path.splitext(file.filename)[1]
-    safe_filename = f"evidence_verify_{req_id}_{int(datetime.datetime.utcnow().timestamp())}{file_ext}"
+    safe_filename = f"evidence_verify_{req_id}_{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}{file_ext}"
     dest_path = os.path.join(UPLOAD_DIR, safe_filename)
     
     with open(dest_path, "wb") as buffer:

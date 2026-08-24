@@ -138,3 +138,126 @@ def get_report_status(
         "status": report.status,
         "reviewer_comment": report.reviewer_comment
     }
+
+@router.get("/pdf/{placement_id}")
+def generate_printable_official_summary(
+    placement_id: int,
+    current_user: User = Depends(RoleChecker(["coordinator", "admin", "supervisor", "student"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Generates a printable HTML document formatted like an official SIWES Departmental Summary Report
+    with student placement details, attendance rate, weekly logbook logs, and supervisor grades.
+    """
+    from fastapi.responses import HTMLResponse
+    from app.models.siwes import Attendance
+
+    placement = db.query(Placement).filter(Placement.id == placement_id).first()
+    if not placement:
+        raise HTTPException(status_code=404, detail="Placement record not found")
+
+    student_user = placement.student.user
+    org_name = placement.organization.name if placement.organization else "Unspecified Host Organization"
+    entries = db.query(LogbookEntry).filter(LogbookEntry.placement_id == placement_id).order_by(LogbookEntry.week_number.asc()).all()
+    assessment = db.query(Assessment).filter(Assessment.placement_id == placement_id).first()
+    
+    # Calculate attendance statistics
+    attendances = db.query(Attendance).filter(Attendance.placement_id == placement_id).all()
+    total_days = len(attendances)
+    present_days = sum(1 for a in attendances if a.status == "present")
+    attendance_rate = round((present_days / total_days * 100), 1) if total_days > 0 else 100.0
+
+    # Build weekly logbook table HTML
+    logbook_rows = ""
+    for e in entries:
+        score_display = f"{e.feedback[0].score}/100" if (e.feedback and e.feedback[0].score is not None) else "Pending"
+        logbook_rows += f"""
+        <tr>
+            <td style="border: 1px solid #CBD5E1; padding: 8px; text-align: center;">Week {e.week_number}</td>
+            <td style="border: 1px solid #CBD5E1; padding: 8px;">{e.activities}</td>
+            <td style="border: 1px solid #CBD5E1; padding: 8px;">{e.tools_used or 'N/A'}</td>
+            <td style="border: 1px solid #CBD5E1; padding: 8px; text-align: center;">{e.status.upper()}</td>
+            <td style="border: 1px solid #CBD5E1; padding: 8px; text-align: center;">{score_display}</td>
+        </tr>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>SIWES Official Departmental Summary Report</title>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; color: #1E293B; }}
+            .header {{ text-align: center; border-bottom: 3px double #0F172A; padding-bottom: 16px; margin-bottom: 24px; }}
+            .title {{ font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #0F172A; }}
+            .subtitle {{ font-size: 14px; color: #475569; margin-top: 4px; }}
+            .meta-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; font-size: 14px; }}
+            .meta-card {{ background: #F8FAFC; border: 1px solid #E2E8F0; padding: 12px 16px; border-radius: 6px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }}
+            th {{ background: #0F172A; color: #FFF; border: 1px solid #0F172A; padding: 10px; text-align: left; }}
+            .score-box {{ background: #F0FDF4; border: 2px solid #16A34A; padding: 16px; border-radius: 8px; text-align: center; font-size: 18px; font-weight: bold; color: #166534; }}
+            .footer {{ margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; border-top: 1px solid #CBD5E1; padding-top: 16px; }}
+            @media print {{ body {{ margin: 0; }} }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="title">Students Industrial Work Experience Scheme (SIWES)</div>
+            <div class="subtitle">Official Departmental Progress & Final Assessment Transcript</div>
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-card">
+                <strong>Student Name:</strong> {student_user.full_name}<br>
+                <strong>Matriculation No:</strong> {placement.student.matric_number}<br>
+                <strong>Department:</strong> {placement.student.department} (Level {placement.student.level})
+            </div>
+            <div class="meta-card">
+                <strong>Host Organization:</strong> {org_name}<br>
+                <strong>Placement Duration:</strong> {placement.start_date} to {placement.end_date} ({placement.duration_weeks} Wks)<br>
+                <strong>Attendance Rate:</strong> {attendance_rate}% ({present_days}/{total_days} Days Present)
+            </div>
+        </div>
+
+        <h3 style="color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px;">Weekly Logbook Submissions Summary</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Week</th>
+                    <th style="width: 45%;">Activities & Accomplishments</th>
+                    <th style="width: 25%;">Tools & Technologies</th>
+                    <th style="width: 10%; text-align: center;">Status</th>
+                    <th style="width: 10%; text-align: center;">Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {logbook_rows if logbook_rows else "<tr><td colspan='5' style='text-align:center; padding: 16px; color:#64748B;'>No logbook entries logged.</td></tr>"}
+            </tbody>
+        </table>
+
+        <h3 style="color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px;">Final Assessment Scoring Breakdown</h3>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: center;">
+            <div>
+                <p><strong>Punctuality & Attendance:</strong> {assessment.punctuality_score if assessment else 0} / 20</p>
+                <p><strong>Technical Skill Acquisition:</strong> {assessment.technical_score if assessment else 0} / 40</p>
+                <p><strong>Communication & Teamwork:</strong> {assessment.communication_score if assessment else 0} / 20</p>
+                <p><strong>Professionalism & Work Ethics:</strong> {assessment.professionalism_score if assessment else 0} / 20</p>
+                <p><strong>Supervisor Remarks:</strong> <em>{assessment.remarks if (assessment and assessment.remarks) else 'No remarks entered'}</em></p>
+            </div>
+            <div class="score-box">
+                FINAL SIWES GRADE<br>
+                <span style="font-size: 32px; color: #15803D;">{assessment.total_score if assessment else 0} / 100</span><br>
+                <small style="font-weight: normal; color: #475569;">STATUS: {assessment.status.upper() if assessment else 'PENDING'}</small>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div>Industry Supervisor Sign-off: _____________________</div>
+            <div>Departmental Coordinator Sign-off: _____________________</div>
+            <div>Generated via Internly SIWES Platform</div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
