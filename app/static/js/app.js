@@ -847,7 +847,7 @@ async function loadSupervisorStudents() {
                 <td>${student.department}</td>
                 <td>${student.completed_weeks} Weeks</td>
                 <td><small>${student.latest_activity}</small></td>
-                <td><button class="btn btn-primary btn-small" onclick="openSupervisorWorkspace(${student.placement_id}, '${student.student_name}')">Grade / Review</button></td>
+                <td><button class="btn btn-primary btn-small" onclick="openSupervisorWorkspace(${student.placement_id}, '${student.student_name}', ${student.duration_weeks || 24})">Grade / Review</button></td>
             `;
             tableBody.appendChild(tr);
         });
@@ -855,7 +855,7 @@ async function loadSupervisorStudents() {
 }
 
 // Open Supervisor assessment workspace for student
-async function openSupervisorWorkspace(placementId, studentName) {
+async function openSupervisorWorkspace(placementId, studentName, durationWeeks = 24) {
     currentPlacementId = placementId;
     document.getElementById("workspace-title").innerText = `Assessing: ${studentName}`;
     document.getElementById("supervisor-review-workspace").classList.remove("hidden");
@@ -912,12 +912,20 @@ async function openSupervisorWorkspace(placementId, studentName) {
         reportStatus.innerText = "Pending submission at end of internship.";
     }
 
-    // 3. Unlock Final Grading Assessment form ONLY IF a logbook entry (e.g. final week) is approved!
-    const hasApprovedWeek = studentEntries.some(e => e.status === "approved");
+    // 3. Unlock Final Grading Assessment form ONLY IF max approved week >= placement duration (or final week)!
+    const maxApprovedWeek = studentEntries.filter(e => e.status === "approved").reduce((max, e) => Math.max(max, e.week_number), 0);
+    const targetFinalWeek = durationWeeks || 24;
+    const isFinalWeekApproved = maxApprovedWeek > 0 && maxApprovedWeek >= targetFinalWeek;
+
     const lockedNotice = document.getElementById("sup-final-grading-locked-notice");
     const unlockedPanel = document.getElementById("sup-final-grading-unlocked-panel");
+    const lockedMsg = document.getElementById("sup-final-grading-locked-msg");
 
-    if (hasApprovedWeek) {
+    if (lockedMsg) {
+        lockedMsg.innerHTML = `The Final SIWES Assessment form is locked. It will automatically unlock once you have reviewed and <strong>approved Week ${targetFinalWeek} (the final week of the ${targetFinalWeek}-week internship)</strong>. Currently, highest approved week is <strong>Week ${maxApprovedWeek}</strong>.`;
+    }
+
+    if (isFinalWeekApproved) {
         lockedNotice.classList.add("hidden");
         unlockedPanel.classList.remove("hidden");
     } else {
