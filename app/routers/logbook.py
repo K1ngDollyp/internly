@@ -209,15 +209,19 @@ def upload_evidence(
     
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"evidence_{entry_id}_{int(datetime.datetime.utcnow().timestamp())}{file_ext}"
-    dest_path = os.path.join(UPLOAD_DIR, safe_filename)
     
-    with open(dest_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    from app.services.storage_service import upload_file_to_storage
+    file_url = upload_file_to_storage(
+        file_bytes=content,
+        filename=safe_filename,
+        content_type=file.content_type or "application/octet-stream",
+        bucket="evidence-files"
+    )
         
     evidence = EvidenceFile(
         entry_id=entry.id,
         file_name=file.filename,
-        file_url=f"/uploads/{safe_filename}",
+        file_url=file_url,
         mime_type=file.content_type,
         file_size=len(content)
     )

@@ -48,14 +48,18 @@ def submit_final_report(
 
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"report_{placement.id}_{int(datetime.datetime.utcnow().timestamp())}{file_ext}"
-    dest_path = os.path.join(UPLOAD_DIR, safe_filename)
 
-    with open(dest_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    from app.services.storage_service import upload_file_to_storage
+    file_url = upload_file_to_storage(
+        file_bytes=content,
+        filename=safe_filename,
+        content_type=file.content_type or "application/pdf",
+        bucket="reports"
+    )
 
     report = FinalReport(
         placement_id=placement.id,
-        file_url=f"/uploads/{safe_filename}",
+        file_url=file_url,
         status="submitted"
     )
     db.add(report)
