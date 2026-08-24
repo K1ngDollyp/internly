@@ -558,9 +558,23 @@ def review_placement_request(
         if confirm_rec:
             sv_profile = db.query(IndustrySupervisor).filter(IndustrySupervisor.user_id == confirm_rec.supervisor_id).first()
             if sv_profile:
-                # Associate supervisor to organization
                 sv_profile.organization_id = org.id
                 db.commit()
+                supervisor_id = sv_profile.id
+
+        if not supervisor_id:
+            # Fallback: Lookup IndustrySupervisor via User email matching proposed_supervisor_email
+            sv_user = db.query(User).filter(User.email == req.proposed_supervisor_email, User.role == "supervisor").first()
+            if sv_user:
+                sv_profile = db.query(IndustrySupervisor).filter(IndustrySupervisor.user_id == sv_user.id).first()
+                if not sv_profile:
+                    sv_profile = IndustrySupervisor(user_id=sv_user.id, organization_id=org.id, job_title=req.proposed_supervisor_job_title)
+                    db.add(sv_profile)
+                    db.commit()
+                    db.refresh(sv_profile)
+                else:
+                    sv_profile.organization_id = org.id
+                    db.commit()
                 supervisor_id = sv_profile.id
 
         # Create formal Placement
