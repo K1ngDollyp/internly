@@ -307,8 +307,8 @@ def generate_siwes_completion_certificate(
 
 @router.get("/export/csv")
 def export_departmental_grades_csv(
-    token: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RoleChecker(["coordinator", "admin"]))
 ):
     """
     Exports a CSV spreadsheet containing all student SIWES placement records,

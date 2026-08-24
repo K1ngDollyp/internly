@@ -1700,9 +1700,27 @@ function closePdfModal() {
 }
 
 // Export Departmental Grades CSV
-function exportGradesCSV() {
+async function exportGradesCSV() {
     showToast("Preparing Departmental Grades Matrix CSV...", "info");
-    window.open("/api/v1/reports/export/csv", "_blank");
+    try {
+        const response = await fetch("/api/v1/reports/export/csv", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to export CSV. Permission denied.");
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "SIWES_Departmental_Grades_Matrix.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        showToast(err.message, "error");
+    }
 }
 
 // Initial Bootup

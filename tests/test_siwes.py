@@ -64,6 +64,10 @@ def test_auth_registration_and_login():
     assert "access_token" in login_response.json()
     assert login_response.json()["role"] == "student"
 
+def test_csv_export_unauthenticated_rejected():
+    response = client.get("/api/v1/reports/export/csv")
+    assert response.status_code == 401
+
 def test_ai_logbook_evaluator():
     # Empty entry test
     empty_eval = LogbookAIModel.evaluate_entry(
