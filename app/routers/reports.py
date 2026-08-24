@@ -241,6 +241,70 @@ def generate_printable_official_summary(
     """
     return HTMLResponse(content=html_content)
 
+@router.get("/certificate/{placement_id}")
+def generate_siwes_completion_certificate(
+    placement_id: int,
+    token: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Generates an official printable SIWES Completion Certificate with verification seal.
+    """
+    from fastapi.responses import HTMLResponse
+    from app.models.siwes import Attendance
+
+    placement = db.query(Placement).filter(Placement.id == placement_id).first()
+    if not placement:
+        raise HTTPException(status_code=404, detail="Placement record not found")
+
+    student_user = placement.student.user
+    org_name = placement.organization.name if placement.organization else "Host Organization"
+    assessment = db.query(Assessment).filter(Assessment.placement_id == placement_id).first()
+    
+    cert_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>SIWES Official Completion Certificate</title>
+        <style>
+            body {{ font-family: 'Georgia', serif; padding: 40px; text-align: center; color: #0F172A; background: #FFF; }}
+            .cert-border {{ border: 10px double #0F172A; padding: 40px; border-radius: 8px; position: relative; }}
+            .cert-title {{ font-size: 32px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; color: #1E293B; }}
+            .cert-subtitle {{ font-size: 16px; font-style: italic; color: #475569; margin-bottom: 30px; }}
+            .student-name {{ font-size: 36px; font-weight: bold; color: #2563EB; border-bottom: 2px solid #CBD5E1; display: inline-block; padding-bottom: 4px; margin: 20px 0; }}
+            .cert-body {{ font-size: 18px; line-height: 1.8; max-width: 700px; margin: 0 auto 40px auto; color: #334155; }}
+            .grade-seal {{ display: inline-block; background: #F0FDF4; border: 3px double #16A34A; padding: 12px 30px; border-radius: 50px; font-size: 20px; font-weight: bold; color: #15803D; margin-bottom: 40px; }}
+            .signatures {{ display: flex; justify-content: space-between; margin-top: 60px; font-size: 14px; border-top: 1px solid #CBD5E1; padding-top: 20px; }}
+            @media print {{ body {{ padding: 0; }} .cert-border {{ border-width: 6px; }} }}
+        </style>
+    </head>
+    <body>
+        <div class="cert-border">
+            <div class="cert-title">Certificate of SIWES Completion</div>
+            <div class="cert-subtitle">Students Industrial Work Experience Scheme (SIWES)</div>
+
+            <p style="font-size: 16px; color: #64748B;">This is to officially certify that</p>
+            <div class="student-name">{student_user.full_name}</div>
+            <p style="font-size: 15px; color: #475569;">Matriculation No: <strong>{placement.student.matric_number}</strong> | Department of {placement.student.department}</p>
+
+            <div class="cert-body">
+                has successfully completed the mandatory <strong>{placement.duration_weeks}-Week SIWES Industrial Attachment</strong> program conducted at <strong>{org_name}</strong> from {placement.start_date} to {placement.end_date}, satisfying all logbook, attendance, and technical performance requirements.
+            </div>
+
+            <div class="grade-seal">
+                FINAL SIWES GRADE: {assessment.total_score if assessment else 0} / 100 ({assessment.status.upper() if assessment else 'COMPLETED'})
+            </div>
+
+            <div class="signatures">
+                <div>_____________________________________<br><strong>Industry Supervisor</strong><br>{placement.supervisor.user.full_name if (placement.supervisor and placement.supervisor.user) else 'Authorized Signatory'}</div>
+                <div>_____________________________________<br><strong>Departmental SIWES Coordinator</strong><br>University Directorate of SIWES</div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=cert_html)
+
 @router.get("/export/csv")
 def export_departmental_grades_csv(
     token: Optional[str] = None,

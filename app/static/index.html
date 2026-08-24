@@ -37,6 +37,17 @@
                     <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
                 </div>
 
+                <!-- Quick Demo Login Selector -->
+                <div class="form-group" style="margin-bottom: 20px; background: #F8FAFC; padding: 12px; border-radius: var(--radius-sm); border: 1px solid #E2E8F0;">
+                    <label style="margin-bottom: 4px; color: var(--accent-blue); font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles"></i> Quick Fill Demo Account</label>
+                    <select id="quick-demo-select" onchange="quickFillDemoCredentials()" style="font-size: 0.85rem;">
+                        <option value="">Select account role to test...</option>
+                        <option value="student">🎓 Student: student1@university.edu.ng</option>
+                        <option value="supervisor">🏢 Supervisor: supervisor1@brighttech.com</option>
+                        <option value="coordinator">🏛️ Coordinator: coordinator@university.edu.ng</option>
+                    </select>
+                </div>
+
                 <!-- Login Form -->
                 <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
                     <div class="form-group">
@@ -290,11 +301,15 @@
                 <div class="content-body">
                     <!-- STUDENT VIEW: OVERVIEW -->
                     <div id="view-student-overview" class="dashboard-view">
-                        <div class="row">
-                            <div class="card card-hero">
-                                <div class="card-body">
-                                    <h3>Welcome back, <span class="student-name">Student</span>!</h3>
-                                    <p>Track your placement approvals, weekly submissions, and performance grading easily.</p>
+                        <!-- Student Next Steps & Action Guidance Card -->
+                        <div id="student-next-steps-card" class="card" style="margin-top: 15px; border-left: 4px solid var(--accent-blue); background: #EFF6FF;">
+                            <div style="display: flex; gap: 14px; align-items: flex-start;">
+                                <i class="fa-solid fa-compass" style="font-size: 1.5rem; color: var(--accent-blue); margin-top: 2px;"></i>
+                                <div style="flex: 1;">
+                                    <h4 style="margin: 0 0 4px 0; color: #1E40AF; font-size: 1rem;">Your Immediate Next Step</h4>
+                                    <p id="student-next-step-msg" style="margin: 0; font-size: 0.88rem; color: #1E3A8A; line-height: 1.4;">
+                                        Loading your action items...
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -845,7 +860,14 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="review-comment">Reviewer Comment</label>
+                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                    <label for="review-comment" style="margin: 0;">Reviewer Comment</label>
+                                                    <div style="display: flex; gap: 6px;">
+                                                        <button type="button" onclick="insertSupervisorPresetComment('Excellent technical progress and clear logbook summary!')" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 6px;">[Great Technical Work]</button>
+                                                        <button type="button" onclick="insertSupervisorPresetComment('Logbook entry approved. Well documented activities.')" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 6px;">[Well Documented]</button>
+                                                        <button type="button" onclick="insertSupervisorPresetComment('Please expand on technical tasks and tools used for Thursday and Friday.')" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 6px;">[Needs Detail]</button>
+                                                    </div>
+                                                </div>
                                                 <textarea id="review-comment" rows="3" required placeholder="Add feedback or suggestions..."></textarea>
                                             </div>
                                             <button type="submit" class="btn btn-primary">

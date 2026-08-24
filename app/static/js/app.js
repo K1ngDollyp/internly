@@ -37,6 +37,24 @@ async function apiRequest(endpoint, method = "GET", body = null, isMultipart = f
     }
 }
 
+// Quick Demo Login Helper for Testing & Defense Presentations
+function quickFillDemoCredentials() {
+    const val = document.getElementById("quick-demo-select").value;
+    const emailInput = document.getElementById("login-email");
+    const passwordInput = document.getElementById("login-password");
+    
+    if (val === "student") {
+        emailInput.value = "student1@university.edu.ng";
+        passwordInput.value = "password123";
+    } else if (val === "supervisor") {
+        emailInput.value = "supervisor1@brighttech.com";
+        passwordInput.value = "password123";
+    } else if (val === "coordinator") {
+        emailInput.value = "coordinator@university.edu.ng";
+        passwordInput.value = "password123";
+    }
+}
+
 // Toast notification helper
 function showToast(message, type = "info") {
     const container = document.getElementById("toast-container");
@@ -274,6 +292,17 @@ async function loadStudentOverview() {
         document.getElementById("dashboard-progress-fill").style.width = `${stats.progress_percentage}%`;
         document.getElementById("progress-percentage-label").innerText = `${stats.progress_percentage}% Completed`;
         
+        const nextStepMsg = document.getElementById("student-next-step-msg");
+        if (nextStepMsg) {
+            if (stats.placement_status === "approved") {
+                nextStepMsg.innerHTML = `Your SIWES placement is <strong>APPROVED</strong>! Go to the <strong>Logbook tab</strong> to fill and submit your Weekly Logbook Entry (Completed: <strong>${stats.completed_weeks} of ${stats.total_weeks} Weeks</strong>).`;
+            } else if (stats.placement_status === "pending") {
+                nextStepMsg.innerHTML = `Your placement proposal is <strong>UNDER VERIFICATION</strong>. Copy your supervisor invitation link from the <strong>Placement tab</strong> and send it to your supervisor to confirm.`;
+            } else {
+                nextStepMsg.innerHTML = `Please go to the <strong>Placement tab</strong> to fill and submit your SIWES Placement Proposal for coordinator verification.`;
+            }
+        }
+
         // Try loading final assessment details if they exist
         if (stats.placement_details) {
             currentPlacementId = stats.placement_details.id;
@@ -973,6 +1002,13 @@ async function openSupervisorWorkspace(placementId, studentName, durationWeeks =
             if (assess.remarks) document.getElementById("grade-remarks").value = assess.remarks;
         }
     } catch (err) {}
+}
+
+function insertSupervisorPresetComment(text) {
+    const commentField = document.getElementById("review-comment");
+    if (commentField) {
+        commentField.value = text;
+    }
 }
 
 function renderSupervisorLogbookDetail(entry) {
