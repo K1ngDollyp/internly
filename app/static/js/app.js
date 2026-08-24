@@ -873,7 +873,12 @@ async function openSupervisorWorkspace(placementId, studentName) {
         document.getElementById("review-log-outcome").innerText = activeEntry.learning_outcome || "None";
         document.getElementById("review-decision-form").onsubmit = (e) => handleReviewSubmit(e, activeEntry.id);
     } else {
+        document.getElementById("review-log-week").innerText = "-";
+        document.getElementById("review-log-dates").innerText = "-";
         document.getElementById("review-log-activities").innerText = "No submitted entries awaiting review.";
+        document.getElementById("review-log-tools").innerText = "None";
+        document.getElementById("review-log-challenges").innerText = "None";
+        document.getElementById("review-log-outcome").innerText = "None";
     }
 }
 
