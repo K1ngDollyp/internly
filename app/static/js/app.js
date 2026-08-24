@@ -271,27 +271,7 @@ async function loadStudentOverview() {
     try {
         const stats = await apiRequest("/api/v1/dashboard/student");
         
-        // Show/hide unverified identity alert
-        const isVerified = userData.student_profile ? userData.student_profile.is_verified : false;
-        const alertEl = document.getElementById("student-unverified-alert");
-        if (alertEl) {
-            if (isVerified) {
-                alertEl.classList.add("hidden");
-            } else {
-                alertEl.classList.remove("hidden");
-            }
-        }
-        
-        document.querySelector(".student-name").innerText = userData.full_name;
-        document.getElementById("stat-weeks-logged").innerText = `${stats.completed_weeks} / ${stats.total_weeks}`;
-        
-        const placementStatusEl = document.getElementById("stat-placement-status");
-        placementStatusEl.innerText = stats.placement_status;
-        placementStatusEl.className = `status-badge ${stats.placement_status === "approved" ? "text-emerald" : "text-yellow"}`;
-        
-        document.getElementById("dashboard-progress-fill").style.width = `${stats.progress_percentage}%`;
-        document.getElementById("progress-percentage-label").innerText = `${stats.progress_percentage}% Completed`;
-        
+        // 1. Set next step message immediately
         const nextStepMsg = document.getElementById("student-next-step-msg");
         if (nextStepMsg) {
             const statusLower = (stats.placement_status || "").toLowerCase();
@@ -304,18 +284,50 @@ async function loadStudentOverview() {
             }
         }
 
-        // Try loading final assessment details if they exist
+        // Show/hide unverified identity alert
+        const isVerified = (userData && userData.student_profile) ? userData.student_profile.is_verified : false;
+        const alertEl = document.getElementById("student-unverified-alert");
+        if (alertEl) {
+            if (isVerified) {
+                alertEl.classList.add("hidden");
+            } else {
+                alertEl.classList.remove("hidden");
+            }
+        }
+        
+        if (userData) {
+            document.querySelector(".student-name").innerText = userData.full_name;
+        }
+        document.getElementById("stat-weeks-logged").innerText = `${stats.completed_weeks} / ${stats.total_weeks}`;
+        
+        const placementStatusEl = document.getElementById("stat-placement-status");
+        placementStatusEl.innerText = stats.placement_status;
+        placementStatusEl.className = `status-badge ${stats.placement_status === "approved" ? "text-emerald" : "text-yellow"}`;
+        
+        document.getElementById("dashboard-progress-fill").style.width = `${stats.progress_percentage}%`;
+        document.getElementById("progress-percentage-label").innerText = `${stats.progress_percentage}% Completed`;
+
+        // Try loading final assessment details safely
         if (stats.placement_details) {
             currentPlacementId = stats.placement_details.id;
             placementStartDate = stats.placement_details.start_date;
             try {
-                const assess = await apiRequest(`/api/v1/assessments/placement/${currentPlacementId}`);
-                document.getElementById("stat-student-score").innerText = `${assess.total_score} / 100`;
+                const res = await fetch(`/api/v1/assessments/placement/${currentPlacementId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const assess = await res.json();
+                    document.getElementById("stat-student-score").innerText = `${assess.total_score} / 100`;
+                } else {
+                    document.getElementById("stat-student-score").innerText = "-- / 100";
+                }
             } catch (err) {
                 document.getElementById("stat-student-score").innerText = "-- / 100";
             }
         }
-    } catch (err) {}
+    } catch (err) {
+        console.error("Error loading student overview:", err);
+    }
 }
 
 // Student Dashboard: Load Placement Details
