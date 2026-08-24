@@ -99,23 +99,4 @@ def read_root():
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(index_path):
         return FileResponse(index_path)
-    return JSONResponse({"error": "index.html not found", "static_dir": STATIC_DIR, "startup_error": startup_error})
-
-@app.get("/debug")
-def debug_info():
-    """Debug endpoint to diagnose deployment issues."""
-    return {
-        "startup_error": startup_error,
-        "cwd": os.getcwd(),
-        "base_dir": BASE_DIR,
-        "static_dir": STATIC_DIR,
-        "uploads_dir": UPLOADS_DIR,
-        "static_exists": os.path.isdir(STATIC_DIR),
-        "index_exists": os.path.isfile(os.path.join(STATIC_DIR, "index.html")),
-        "env_vars_set": {
-            "DATABASE_URL": bool(os.environ.get("DATABASE_URL")),
-            "JWT_SECRET": bool(os.environ.get("JWT_SECRET")),
-        },
-        "python_version": sys.version,
-        "is_vercel": bool(IS_VERCEL),
-    }
+    return JSONResponse({"error": "index.html not found", "status": "error"})
