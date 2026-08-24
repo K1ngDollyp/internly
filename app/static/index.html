@@ -792,7 +792,23 @@
                                 <div class="review-layout">
                                     <!-- Logbook content info -->
                                     <div class="logbook-detail-panel">
-                                        <h4>Weekly Logbook Submission</h4>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                            <h4 style="margin: 0;">Weekly Logbook Submission</h4>
+                                            <select id="supervisor-logbook-week-select" onchange="switchSupervisorLogbookWeekView()" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px;">
+                                                <option value="">Select Logbook Week...</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Student Final Report Card -->
+                                        <div id="sup-final-report-card" class="boxed-content" style="margin-bottom: 20px; background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.3);">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div>
+                                                    <strong style="color: var(--accent-indigo); font-size: 0.95rem;"><i class="fa-solid fa-file-pdf"></i> Student Final SIWES Report</strong>
+                                                    <p id="sup-final-report-status" style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Checking submission status...</p>
+                                                </div>
+                                                <div id="sup-final-report-actions"></div>
+                                            </div>
+                                        </div>
                                         <p><strong>Week Number:</strong> <span id="review-log-week"></span></p>
                                         <p><strong>Date Range:</strong> <span id="review-log-dates"></span></p>
                                         <div class="details-section">

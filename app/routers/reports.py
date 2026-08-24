@@ -305,6 +305,30 @@ def export_departmental_grades_csv(
         headers={"Content-Disposition": "attachment; filename=SIWES_Departmental_Grades_Matrix.csv"}
     )
 
+@router.get("/placement/{placement_id}")
+def get_final_report_by_placement(
+    placement_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Retrieves the student's uploaded final report for a placement."""
+    placement = db.query(Placement).filter(Placement.id == placement_id).first()
+    if not placement:
+        raise HTTPException(status_code=404, detail="Placement not found")
+        
+    report = db.query(FinalReport).filter(FinalReport.placement_id == placement_id).first()
+    if not report:
+        return {"submitted": False, "file_url": None, "status": "not_submitted"}
+        
+    return {
+        "id": report.id,
+        "submitted": True,
+        "file_url": report.file_url,
+        "submitted_at": report.submitted_at.isoformat(),
+        "status": report.status,
+        "reviewer_comment": report.reviewer_comment
+    }
+
 @router.get("/{report_id}", response_model=dict)
 def get_report_status(
     report_id: int,

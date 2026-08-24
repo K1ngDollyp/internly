@@ -860,26 +860,59 @@ async function openSupervisorWorkspace(placementId, studentName) {
     document.getElementById("workspace-title").innerText = `Assessing: ${studentName}`;
     document.getElementById("supervisor-review-workspace").classList.remove("hidden");
     
-    // Fetch latest submitted entry for this student
+    // Store current workspace placement ID globally for week selector
+    window.currentSupervisorPlacementId = placementId;
+
+    // 1. Fetch all submitted entries for this placement to populate week selector
     const workspaceEntries = await apiRequest("/api/v1/logbook-entries/supervisor/entries");
-    const activeEntry = workspaceEntries.find(e => e.placement_id === placementId && e.status === "submitted");
-    
+    const studentEntries = workspaceEntries.filter(e => e.placement_id === placementId);
+    window.currentSupervisorEntries = studentEntries;
+
+    const select = document.getElementById("supervisor-logbook-week-select");
+    select.innerHTML = '<option value="">Select Logbook Week...</option>';
+    studentEntries.forEach(e => {
+        const opt = document.createElement("option");
+        opt.value = e.id;
+        opt.innerText = `Week ${e.week_number} (${e.status.toUpperCase()})`;
+        select.appendChild(opt);
+    });
+
+    const activeEntry = studentEntries.find(e => e.status === "submitted") || studentEntries[studentEntries.length - 1];
     if (activeEntry) {
-        document.getElementById("review-log-week").innerText = activeEntry.week_number;
-        document.getElementById("review-log-dates").innerText = `${activeEntry.start_date} to ${activeEntry.end_date}`;
-        document.getElementById("review-log-activities").innerText = activeEntry.activities;
-        document.getElementById("review-log-tools").innerText = activeEntry.tools_used || "None";
-        document.getElementById("review-log-challenges").innerText = activeEntry.challenges || "None";
-        document.getElementById("review-log-outcome").innerText = activeEntry.learning_outcome || "None";
-        document.getElementById("review-decision-form").onsubmit = (e) => handleReviewSubmit(e, activeEntry.id);
+        select.value = activeEntry.id;
+        renderSupervisorLogbookDetail(activeEntry);
     } else {
         document.getElementById("review-log-week").innerText = "-";
         document.getElementById("review-log-dates").innerText = "-";
-        document.getElementById("review-log-activities").innerText = "No submitted entries awaiting review.";
+        document.getElementById("review-log-activities").innerText = "No submitted entries for this student yet.";
         document.getElementById("review-log-tools").innerText = "None";
         document.getElementById("review-log-challenges").innerText = "None";
         document.getElementById("review-log-outcome").innerText = "None";
-    // Fetch existing assessment for this placement if available
+    }
+
+    // 2. Fetch Final SIWES Report status
+    const reportStatus = document.getElementById("sup-final-report-status");
+    const reportActions = document.getElementById("sup-final-report-actions");
+    reportStatus.innerText = "Checking final report...";
+    reportActions.innerHTML = "";
+
+    try {
+        const reportRes = await apiRequest(`/api/v1/reports/placement/${placementId}`);
+        if (reportRes && reportRes.submitted && reportRes.file_url) {
+            reportStatus.innerHTML = `<span class="badge accent-emerald">SUBMITTED (${new Date(reportRes.submitted_at).toLocaleDateString()})</span>`;
+            reportActions.innerHTML = `
+                <button onclick="openPdfModal('${reportRes.file_url}')" class="btn btn-teal btn-small">
+                    <i class="fa-solid fa-eye"></i> Preview Final Report PDF
+                </button>
+            `;
+        } else {
+            reportStatus.innerHTML = `<span class="badge text-yellow">NOT SUBMITTED YET</span>`;
+        }
+    } catch (err) {
+        reportStatus.innerText = "Pending submission at end of internship.";
+    }
+
+    // 3. Fetch existing assessment for this placement if available
     try {
         const assess = await apiRequest(`/api/v1/assessments/placement/${placementId}`);
         if (assess) {
@@ -890,6 +923,23 @@ async function openSupervisorWorkspace(placementId, studentName) {
             if (assess.remarks) document.getElementById("grade-remarks").value = assess.remarks;
         }
     } catch (err) {}
+}
+
+function renderSupervisorLogbookDetail(entry) {
+    document.getElementById("review-log-week").innerText = entry.week_number;
+    document.getElementById("review-log-dates").innerText = `${entry.start_date} to ${entry.end_date}`;
+    document.getElementById("review-log-activities").innerText = entry.activities;
+    document.getElementById("review-log-tools").innerText = entry.tools_used || "None";
+    document.getElementById("review-log-challenges").innerText = entry.challenges || "None";
+    document.getElementById("review-log-outcome").innerText = entry.learning_outcome || "None";
+    document.getElementById("review-decision-form").onsubmit = (e) => handleReviewSubmit(e, entry.id);
+}
+
+function switchSupervisorLogbookWeekView() {
+    const selectedId = parseInt(document.getElementById("supervisor-logbook-week-select").value);
+    if (!selectedId) return;
+    const entry = (window.currentSupervisorEntries || []).find(e => e.id === selectedId);
+    if (entry) renderSupervisorLogbookDetail(entry);
 }
 
 async function handleReviewSubmit(e, entryId) {
