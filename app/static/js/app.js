@@ -675,6 +675,35 @@ function loadEntryToForm(entry) {
     document.getElementById("log-challenges").value = entry.challenges || "";
     document.getElementById("log-outcome").value = entry.learning_outcome || "";
     
+    // Render supervisor feedback if available
+    let feedbackBox = document.getElementById("supervisor-feedback-banner");
+    if (!feedbackBox) {
+        feedbackBox = document.createElement("div");
+        feedbackBox.id = "supervisor-feedback-banner";
+        feedbackBox.className = "card hidden";
+        feedbackBox.style.marginBottom = "16px";
+        feedbackBox.style.background = "#FFFBEB";
+        feedbackBox.style.border = "1px solid #FDE68A";
+        const formHeader = document.querySelector("#logbook-form").parentNode;
+        formHeader.insertBefore(feedbackBox, document.querySelector("#logbook-form"));
+    }
+
+    if (entry.feedback && entry.feedback.length > 0) {
+        const latestFeedback = entry.feedback[entry.feedback.length - 1];
+        feedbackBox.innerHTML = `
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <i class="fa-solid fa-comments" style="font-size: 1.2rem; color: #D97706; margin-top: 2px;"></i>
+                <div>
+                    <h5 style="margin: 0 0 2px 0; color: #92400E;">Supervisor Review Feedback (${latestFeedback.decision.toUpperCase()})</h5>
+                    <p style="margin: 0; font-size: 0.88rem; color: #B45309;">${latestFeedback.comment}</p>
+                </div>
+            </div>
+        `;
+        feedbackBox.classList.remove("hidden");
+    } else {
+        feedbackBox.classList.add("hidden");
+    }
+
     // Toggle evidence form display and form readonly
     const isLocked = entry.status === "approved" || entry.status === "submitted";
     setLogbookFormReadonly(isLocked, entry.status);
