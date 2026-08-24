@@ -879,7 +879,17 @@ async function openSupervisorWorkspace(placementId, studentName) {
         document.getElementById("review-log-tools").innerText = "None";
         document.getElementById("review-log-challenges").innerText = "None";
         document.getElementById("review-log-outcome").innerText = "None";
-    }
+    // Fetch existing assessment for this placement if available
+    try {
+        const assess = await apiRequest(`/api/v1/assessments/placement/${placementId}`);
+        if (assess) {
+            document.getElementById("grade-punctuality").value = assess.punctuality_score;
+            document.getElementById("grade-technical").value = assess.technical_score;
+            document.getElementById("grade-communication").value = assess.communication_score;
+            document.getElementById("grade-professional").value = assess.professionalism_score;
+            if (assess.remarks) document.getElementById("grade-remarks").value = assess.remarks;
+        }
+    } catch (err) {}
 }
 
 async function handleReviewSubmit(e, entryId) {
