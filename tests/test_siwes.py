@@ -80,6 +80,14 @@ def test_csv_export_unauthenticated_rejected():
     response = client.get("/api/v1/reports/export/csv")
     assert response.status_code == 401
 
+def test_missing_jwt_secret_validation():
+    from pydantic_settings import BaseSettings
+    from pydantic import ValidationError
+    class DummySettings(BaseSettings):
+        JWT_SECRET: str
+    with pytest.raises(ValidationError):
+        DummySettings(_env_files=())
+
 def test_ai_logbook_evaluator():
     # Empty entry test
     empty_eval = LogbookAIModel.evaluate_entry(

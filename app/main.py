@@ -27,24 +27,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Debug endpoint — always available, even if DB fails
+from app.core.config import settings
+
+jwt_secret_error = None
+if settings is None or not getattr(settings, "JWT_SECRET", None):
+    jwt_secret_error = "JWT_SECRET not configured"
+
 @app.get("/health", tags=["Health"])
 def health_check():
-    return {
-        "status": "healthy",
+    res = {
+        "status": "unhealthy" if (startup_error or jwt_secret_error) else "healthy",
         "service": "siwes-backend",
-        "python": sys.version,
-        "cwd": os.getcwd(),
-        "base_dir": BASE_DIR,
-        "static_dir": STATIC_DIR,
-        "static_exists": os.path.isdir(STATIC_DIR),
         "env_db": bool(os.environ.get("DATABASE_URL")),
         "is_vercel": bool(IS_VERCEL),
     }
+    if jwt_secret_error:
+        res["jwt_secret_status"] = jwt_secret_error
+    if startup_error:
+        res["startup_error"] = "Startup error occurred"
+    return res
 
 # Try to initialize database and routes — catch errors gracefully
 startup_error = None
 try:
+    if jwt_secret_error:
+        raise ValueError("JWT_SECRET is missing from environment")
+
     from app.core.database import engine, Base
     from app.routers import auth, students, placements, logbook, attendance, assessments, dashboards, ai_review, reports, verification, sessions
 
