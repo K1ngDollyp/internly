@@ -10,9 +10,13 @@ from typing import List
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
-UPLOAD_DIR = "uploads"
+# Set upload directory compatible with Vercel serverless filesystem (/tmp)
+UPLOAD_DIR = "/tmp/uploads" if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") else "uploads"
 if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    except Exception:
+        UPLOAD_DIR = "/tmp"
 
 @router.post("", response_model=dict)
 def submit_final_report(

@@ -23,9 +23,13 @@ import shutil
 
 router = APIRouter(prefix="/verification", tags=["Verification"])
 
-UPLOAD_DIR = "uploads"
+# Set upload directory compatible with Vercel serverless filesystem (/tmp)
+UPLOAD_DIR = "/tmp/uploads" if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") else "uploads"
 if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    except Exception:
+        UPLOAD_DIR = "/tmp"
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode('utf-8')).hexdigest()
