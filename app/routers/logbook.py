@@ -108,6 +108,11 @@ def get_logbook_entry(
         if not supervisor or entry.placement.supervisor_id != supervisor.id:
             raise HTTPException(status_code=403, detail="Forbidden: You are not assigned to this student")
 
+    elif current_user.role in ["coordinator", "admin"]:
+        pass  # coordinators/admins can view all entries
+    else:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     return entry
 
 @router.patch("/{entry_id}", response_model=LogbookEntryResponse)
