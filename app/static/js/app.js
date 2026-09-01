@@ -263,6 +263,14 @@ async function switchDashboardView(viewId) {
         titleHeader.innerText = "Verify Student Identities";
         document.getElementById("view-coordinator-students").classList.remove("hidden");
         loadCoordinatorStudentsList();
+    } else if (viewId === "student-profile") {
+        titleHeader.innerText = "My Personal & SIWES Profile";
+        document.getElementById("view-student-profile").classList.remove("hidden");
+        loadStudentProfileForm();
+    } else if (viewId === "coordinator-audit") {
+        titleHeader.innerText = "SIWES Platform System Audit Trail";
+        document.getElementById("view-coordinator-audit").classList.remove("hidden");
+        loadAuditLogs();
     }
 }
 
@@ -317,7 +325,15 @@ async function loadStudentOverview() {
                 });
                 if (res.ok) {
                     const assess = await res.json();
-                    document.getElementById("stat-student-score").innerText = `${assess.total_score} / 100`;
+                    document.getElementById("stat-student-score").innerText = `${assess.total_score} / 100 (${assess.letter_grade})`;
+                    if (assess.status === "finalized" && nextStepMsg) {
+                        nextStepMsg.innerHTML = `
+                            🎉 <strong>SIWES COMPLETION GRADED & CERTIFIED!</strong> Your final score: <strong>${assess.total_score}/100 (${assess.letter_grade})</strong>.<br>
+                            <a href="/api/v1/reports/certificate/${currentPlacementId}" target="_blank" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; text-decoration: none;">
+                                <i class="fa-solid fa-graduation-cap"></i> Download Official SIWES Certificate PDF
+                            </a>
+                        `;
+                    }
                 } else {
                     document.getElementById("stat-student-score").innerText = "-- / 100";
                 }
@@ -1734,6 +1750,131 @@ async function exportGradesCSV() {
     } catch (err) {
         showToast(err.message, "error");
     }
+}
+
+// Student Profile Management
+async function loadStudentProfileForm() {
+    try {
+        const profile = await apiRequest("/api/v1/students/me");
+        if (userData) {
+            document.getElementById("prof-fullname").value = userData.full_name || "";
+            document.getElementById("prof-email").value = userData.email || "";
+        }
+        document.getElementById("prof-matric").value = profile.matric_number || "";
+        document.getElementById("prof-department").value = profile.department || "";
+        document.getElementById("prof-level").value = profile.level || "300";
+        document.getElementById("prof-phone").value = profile.phone || "";
+        document.getElementById("prof-address").value = profile.address || "";
+    } catch (err) {
+        showToast("Error loading student profile details.", "error");
+    }
+}
+
+async function handleStudentProfileSubmit(event) {
+    event.preventDefault();
+    const payload = {
+        department: document.getElementById("prof-department").value,
+        level: document.getElementById("prof-level").value,
+        phone: document.getElementById("prof-phone").value,
+        address: document.getElementById("prof-address").value
+    };
+    try {
+        await apiRequest("/api/v1/students/me", "PATCH", payload);
+        showToast("Personal & SIWES Profile updated successfully!", "success");
+    } catch (err) {
+        showToast("Failed to update profile details.", "error");
+    }
+}
+
+// Coordinator System Audit Log Viewer
+async function loadAuditLogs() {
+    const tbody = document.getElementById("coordinator-audit-table-body");
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center">Loading audit log records...</td></tr>`;
+    try {
+        const logs = await apiRequest("/api/v1/dashboard/audit-logs");
+        if (!logs || logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center">No system audit records found.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = logs.map(l => {
+            const dt = l.timestamp ? new Date(l.timestamp).toLocaleString() : "-";
+            const detailsStr = l.details ? JSON.stringify(l.details) : "-";
+            return `
+                <tr>
+                    <td><small style="color: var(--text-secondary);">${dt}</small></td>
+                    <td><strong>${escapeHtml(l.actor_name)}</strong></td>
+                    <td><span class="badge accent-indigo">${escapeHtml(l.actor_role)}</span></td>
+                    <td><code>${escapeHtml(l.action)}</code></td>
+                    <td>${escapeHtml(l.entity_type)} #${l.entity_id}</td>
+                    <td><small style="color: var(--text-secondary); word-break: break-all;">${escapeHtml(detailsStr)}</small></td>
+                </tr>
+            `;
+        }).join("");
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Failed to load audit logs. Permission denied.</td></tr>`;
+    }
+}
+
+// In-App Notifications
+async function loadInAppNotifications() {
+    if (!token) return;
+    try {
+        const notifications = await apiRequest("/api/v1/dashboard/notifications");
+        const listContainer = document.getElementById("notification-items-list");
+        const countBadge = document.getElementById("notification-badge-count");
+        
+        if (!listContainer) return;
+        
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        if (countBadge) {
+            if (unreadCount > 0) {
+                countBadge.innerText = unreadCount;
+                countBadge.classList.remove("hidden");
+            } else {
+                countBadge.classList.add("hidden");
+            }
+        }
+
+        if (notifications.length === 0) {
+            listContainer.innerHTML = `<p class="empty-text" style="padding: 15px; margin: 0; font-size: 0.8rem; text-align: center;">No new alerts.</p>`;
+            return;
+        }
+
+        listContainer.innerHTML = notifications.map(n => `
+            <div style="padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); background: ${n.is_read ? 'transparent' : 'rgba(99, 102, 241, 0.05)'}">
+                <div style="font-weight: 600; font-size: 0.82rem; color: var(--accent-indigo);">${escapeHtml(n.title)}</div>
+                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">${escapeHtml(n.message)}</div>
+                <div style="font-size: 0.7rem; color: #94A3B8; margin-top: 4px;">${n.created_at ? new Date(n.created_at).toLocaleTimeString() : ''}</div>
+            </div>
+        `).join("");
+    } catch (err) {}
+}
+
+function toggleNotificationDropdown(event) {
+    if (event) event.stopPropagation();
+    const drop = document.getElementById("notification-dropdown");
+    if (drop) drop.classList.toggle("hidden");
+}
+
+function markAllNotificationsRead(event) {
+    if (event) event.stopPropagation();
+    const countBadge = document.getElementById("notification-badge-count");
+    if (countBadge) countBadge.classList.add("hidden");
+    showToast("Alerts marked as read.", "info");
+    const drop = document.getElementById("notification-dropdown");
+    if (drop) drop.classList.add("hidden");
+}
+
+// Defense Presentation Guide Modal
+function openDefenseGuideModal() {
+    const modal = document.getElementById("defense-modal");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeDefenseGuideModal() {
+    const modal = document.getElementById("defense-modal");
+    if (modal) modal.classList.add("hidden");
 }
 
 // Initial Bootup

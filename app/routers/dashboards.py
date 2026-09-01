@@ -3,10 +3,49 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
 from app.dependencies import get_current_user, RoleChecker
-from app.models.siwes import User, StudentProfile, Placement, LogbookEntry, Assessment, IndustrySupervisor, Organization
 from typing import Dict, Any, List
+from app.models.siwes import User, StudentProfile, Placement, LogbookEntry, Assessment, IndustrySupervisor, Organization, AuditLog, Notification
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboards"])
+
+@router.get("/audit-logs", response_model=List[dict])
+def get_audit_logs(
+    current_user: User = Depends(RoleChecker(["coordinator", "admin"])),
+    db: Session = Depends(get_db)
+):
+    logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
+    result = []
+    for log in logs:
+        actor = db.query(User).filter(User.id == log.actor_id).first() if log.actor_id else None
+        result.append({
+            "id": log.id,
+            "timestamp": log.created_at.isoformat() if log.created_at else "",
+            "actor_name": actor.full_name if actor else "System",
+            "actor_role": actor.role if actor else "system",
+            "action": log.action,
+            "entity_type": log.entity_type or "-",
+            "entity_id": log.entity_id or "-",
+            "details": log.metadata_json or {}
+        })
+    return result
+
+@router.get("/notifications", response_model=List[dict])
+def get_user_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    notifications = db.query(Notification).filter(
+        Notification.recipient_id == current_user.id
+    ).order_by(Notification.created_at.desc()).limit(20).all()
+    
+    return [{
+        "id": n.id,
+        "title": n.title,
+        "message": n.message,
+        "type": n.type,
+        "created_at": n.created_at.isoformat() if n.created_at else "",
+        "is_read": n.read_at is not None
+    } for n in notifications]
 
 @router.get("/student", response_model=dict)
 def get_student_dashboard(

@@ -219,19 +219,19 @@
                             <span id="sidebar-user-role" class="badge">Role</span>
                         </div>
                     </div>
-                </div>
-
-                <nav class="sidebar-nav">
-                    <!-- Student Links -->
+                              <!-- Student Links -->
                     <div class="nav-group student-nav hidden">
                         <a href="#" class="nav-link active" onclick="switchDashboardView('student-overview')">
-                            <i class="fa-solid fa-chart-pie"></i><span>Overview</span>
+                            <i class="fa-solid fa-chart-line"></i><span>Overview</span>
                         </a>
                         <a href="#" class="nav-link" onclick="switchDashboardView('student-placement')">
                             <i class="fa-solid fa-building"></i><span>Placement</span>
                         </a>
                         <a href="#" class="nav-link" onclick="switchDashboardView('student-logbook')">
                             <i class="fa-solid fa-book-open"></i><span>Logbook</span>
+                        </a>
+                        <a href="#" class="nav-link" onclick="switchDashboardView('student-profile')">
+                            <i class="fa-solid fa-user-gear"></i><span>My Profile</span>
                         </a>
                     </div>
 
@@ -259,6 +259,11 @@
                         <a href="#" class="nav-link" onclick="switchDashboardView('coordinator-students')">
                             <i class="fa-solid fa-user-shield"></i><span>Verify Students</span>
                         </a>
+                        <a href="#" class="nav-link" onclick="switchDashboardView('coordinator-audit')">
+                            <i class="fa-solid fa-file-shield"></i><span>Audit Trail</span>
+                        </a>
+                    </div>>
+                        </a>
                     </div>
                 </nav>
 
@@ -275,7 +280,10 @@
                 <!-- Top bar -->
                 <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
                     <h2 id="current-view-title">Dashboard Overview</h2>
-                    <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <button class="btn btn-outline" style="padding: 5px 12px; font-size: 0.82rem; border-color: var(--accent-indigo); color: var(--accent-indigo);" onclick="openDefenseGuideModal()">
+                            <i class="fa-solid fa-shield-halved"></i> <span>Defense Guide</span>
+                        </button>
                         <!-- In-App Notification Bell -->
                         <div class="notification-bell-container" style="position: relative; cursor: pointer;">
                             <i class="fa-solid fa-bell" style="font-size: 1.3rem; color: var(--text-secondary);" onclick="toggleNotificationDropdown(event)"></i>
@@ -747,6 +755,60 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STUDENT VIEW: MY PROFILE -->
+                    <div id="view-student-profile" class="dashboard-view hidden">
+                        <div class="card" style="max-width: 720px; margin: 0 auto;">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-user-gear text-indigo"></i> My Personal & SIWES Profile</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="student-profile-form" onsubmit="handleStudentProfileSubmit(event)">
+                                    <div class="grid grid-2">
+                                        <div class="form-group">
+                                            <label>Full Name</label>
+                                            <input type="text" id="prof-fullname" disabled style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Email Address</label>
+                                            <input type="email" id="prof-email" disabled style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-2">
+                                        <div class="form-group">
+                                            <label>Matriculation Number</label>
+                                            <input type="text" id="prof-matric" required placeholder="e.g. CSC/2023/006">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Department</label>
+                                            <input type="text" id="prof-department" required placeholder="Computer Science">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-2">
+                                        <div class="form-group">
+                                            <label>Academic Level</label>
+                                            <select id="prof-level" required>
+                                                <option value="300">300 Level</option>
+                                                <option value="400">400 Level</option>
+                                                <option value="500">500 Level</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Phone Number</label>
+                                            <input type="tel" id="prof-phone" required placeholder="08012345678">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Residential / Contact Address</label>
+                                        <textarea id="prof-address" rows="2" required placeholder="Enter your current address..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save Profile Details
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -1381,12 +1443,85 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- COORDINATOR VIEW: AUDIT TRAIL -->
+                    <div id="view-coordinator-audit" class="dashboard-view hidden">
+                        <div class="card">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3><i class="fa-solid fa-file-shield text-indigo"></i> SIWES System Audit Trail & Compliance Log</h3>
+                                <span class="badge accent-indigo">System Compliance Trail</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Actor</th>
+                                                <th>Role</th>
+                                                <th>Action Executed</th>
+                                                <th>Target Entity</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="coordinator-audit-table-body">
+                                            <tr><td colspan="6" class="text-center">Loading audit log records...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         </section>
     </div>
 
+    <!-- DEFENSE PRESENTATION GUIDE MODAL -->
+    <div id="defense-modal" class="modal-overlay hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div class="modal-card" style="background: #111827; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 750px; max-height: 85vh; border-radius: 12px; overflow-y: auto; color: #F9FAFB; padding: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 15px; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 1.25rem;"><i class="fa-solid fa-shield-halved text-indigo"></i> SIWES System Defense & Architectural Presentation Guide</h3>
+                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 0.8rem; border-color: rgba(255,255,255,0.2);" onclick="closeDefenseGuideModal()">Close ✖</button>
+            </div>
+            
+            <div style="font-size: 0.9rem; line-height: 1.6;">
+                <div style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid #6366F1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                    <strong>🎓 Project Title:</strong> Internly — Intelligent Web-Based SIWES Management & Verification System<br>
+                    <strong>Architecture:</strong> FastAPI + SQLAlchemy (ORM) + Supabase Postgres + Supabase Storage + Vercel (@vercel/python).
+                </div>
+
+                <h4 style="color: var(--accent-indigo); margin-top: 15px; font-size: 1rem;"><i class="fa-solid fa-lock"></i> 1. Security & Compliance Architecture</h4>
+                <ul style="padding-left: 20px; color: var(--text-secondary);">
+                    <li><strong>RBAC Authorization:</strong> Gated using FastAPI <code>RoleChecker</code> dependencies across all routes.</li>
+                    <li><strong>Secure Authentication:</strong> OAuth2 Bearer Tokens with HS256 JWT cryptography and PBKDF2 SHA-256 password hashing.</li>
+                    <li><strong>Tokenized Supervisor Onboarding:</strong> Cryptographically hashed 7-day single-use invitation tokens.</li>
+                    <li><strong>Serverless Storage:</strong> Persistent multi-bucket integration with Supabase Storage REST API for logbook evidence and final report uploads.</li>
+                </ul>
+
+                <h4 style="color: var(--accent-teal); margin-top: 15px; font-size: 1rem;"><i class="fa-solid fa-brain"></i> 2. Core Functional Modules & Intelligence</h4>
+                <ul style="padding-left: 20px; color: var(--text-secondary);">
+                    <li><strong>3-Way Verification Engine:</strong> Field comparison algorithm detecting student vs supervisor vs coordinator data discrepancies.</li>
+                    <li><strong>AI Quality Scoring Assistant:</strong> Real-time text analysis evaluating technical depth and detecting duplicate logbook entries.</li>
+                    <li><strong>Final Week Lock Rule:</strong> Supervisor final assessment unlocked strictly during the last week after last week approval.</li>
+                    <li><strong>Official Transcript & Certificate Engine:</strong> Dynamic PDF generator producing printable SIWES Completion Certificates with double-line borders and official signatures.</li>
+                </ul>
+
+                <h4 style="color: var(--accent-rose); margin-top: 15px; font-size: 1rem;"><i class="fa-solid fa-laptop-code"></i> 3. Recommended Presentation Flow for Panel</h4>
+                <ol style="padding-left: 20px; color: var(--text-secondary);">
+                    <li>Log in as <strong>Student</strong>: Fill placement proposal, view AI quality feedback, submit weekly logbook, view My Profile.</li>
+                    <li>Log in as <strong>Supervisor</strong>: Approve logbook entries using quick-preset comment tags, approve final week entry, complete final assessment.</li>
+                    <li>Log in as <strong>Coordinator</strong>: Verify student identity, review audit trail log, export departmental grades CSV, download official SIWES Certificate.</li>
+                </ol>
+            </div>
+            
+            <div style="text-align: right; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                <button class="btn btn-primary" onclick="closeDefenseGuideModal()">Got It, Continue Demo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- App Javascript logic -->
-    <script src="/assets/js/app.js?v=20260824_02"></script>
+    <script src="/assets/js/app.js?v=20260901_01"></script>
 </body>
 </html>
